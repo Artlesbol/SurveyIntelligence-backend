@@ -16,6 +16,7 @@ from Qn.models import *
 utc = pytz.UTC
 KEY_STR = "-<^-^>-"
 
+
 @csrf_exempt
 def get_list(request):
     # 检验是否登录
@@ -73,7 +74,6 @@ def get_list(request):
         if is_released == 1 or is_released == '1':
             survey_list = survey_list.filter(is_released=True)
         if is_released == 0 or is_released == '0':
-
             survey_list = survey_list.filter(is_released=False)
         if is_collected:
             survey_list = survey_list.filter(is_collected=is_collected)
@@ -112,7 +112,6 @@ def all_submittion_count(request):
         return JsonResponse({'status_code': 1, 'count': count, 'message': "success"})
     else:
         return JsonResponse({'status_code': 0, 'count': 0, 'message': "请求错误"})
-
 
 
 @csrf_exempt
@@ -268,6 +267,7 @@ def get_code(request):
     else:
         return JsonResponse({'status_code': 404})
 
+
 @csrf_exempt
 def get_code_existed(request):
     # 检查登录情况
@@ -331,7 +331,7 @@ def save_qn_answer(request):
                 print(answer_str.split(KEY_STR))
                 print(answer_str)
                 answer = Answer(question_id_id=item['question_id'], submit_id_id=submit.submit_id,
-                            answer=answer_str, type=item['type'])
+                                answer=answer_str, type=item['type'])
                 if username:
                     answer.username = username
                 answer.save()

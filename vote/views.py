@@ -1,20 +1,12 @@
-from django.shortcuts import render
-import json
-
 import pytz
-import datetime
-
 # Create your views here.
-from utils.toHash import hash_code
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from Qn.form import SurveyIdForm, URLForm, CodeForm
+
+from Qn.form import CodeForm
 from Qn.models import *
 
 utc = pytz.UTC
-
-
-
 
 
 @csrf_exempt
@@ -33,30 +25,22 @@ def ret_vote_answer_by_code(request):
             if qn.is_released is False or qn.is_deleted is True:
                 return JsonResponse({'status_code': 3})
 
-
             username = request.session.get('username')
             # if survey.username != username:
             #     return JsonResponse({'status_code': 0})
-            submit = Submit.objects.get(username=username,survey_id =qn)
+            submit = Submit.objects.get(username=username, survey_id=qn)
             answer_submit_list = Answer.objects.filter(submit_id=submit)
             question_list = Question.objects.filter(survey_id=qn, isVote=True)
             questions = []
             for question in question_list:
-                item = {}
-                item['question_id'] = question.question_id
-                item['id'] = question.sequence
-                item['description'] = question.direction
-                item['isVote'] = True
-                item['must'] = question.is_must_answer
-                item['title'] = question.title
-                item['type'] = question.type
-                item['row'] = question.raw
-                item['score'] = question.score
+                item = {'question_id': question.question_id, 'id': question.sequence, 'description': question.direction,
+                        'isVote': True, 'must': question.is_must_answer, 'title': question.title, 'type': question.type,
+                        'row': question.raw, 'score': question.score}
                 option_list = Option.objects.filter(question_id=question)
                 max_num = 0
                 options = []
                 answer_list = Answer.objects.filter(question_id=question)
-                answer_submit = Answer.objects.get(question_id = question,submit_id=submit)
+                answer_submit = Answer.objects.get(question_id=question, submit_id=submit)
                 from Qn.views import KEY_STR
                 answer_content_list = answer_submit.answer.split(KEY_STR)
                 for option in option_list:

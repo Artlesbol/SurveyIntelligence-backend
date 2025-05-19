@@ -14,5 +14,5 @@ urlpatterns = [
 
     path('save_ans', save_qn_answer),
 
-    path('change/code',change_code),
+    path('change/code', change_code),
 ]

@@ -1,17 +1,13 @@
 import random
-
-from django.conf import settings
-from django.http import JsonResponse
 import re
-import datetime
+
 import pytz
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 
-from userinfo.models import ConfirmString
-from utils.sendEmail import *
 from userinfo.models import User
-
+from utils.sendEmail import *
 from .form import *
 
 utc = pytz.UTC
@@ -33,7 +29,7 @@ def login(request):
 
         try:
             user = User.objects.get(username=username)
-        except:
+        except e:
             return JsonResponse({'status_code': 3})
 
         if user.password == hash_code(password):
@@ -254,7 +250,8 @@ def get_userinfo(request):
         print(username + " 进入账户设置页面失败，将清除前端登录信息")
         return JsonResponse({'status_code': 2})
     print(user.username + " 成功进入账户设置页面")
-    return JsonResponse({'status_code': 1, 'username': user.username, 'is_confirmed': user.has_confirmed, 'email': user.email})
+    return JsonResponse(
+        {'status_code': 1, 'username': user.username, 'is_confirmed': user.has_confirmed, 'email': user.email})
 
 
 @csrf_exempt

@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create your models here.
 
 def image_directory_path(instance, filename):

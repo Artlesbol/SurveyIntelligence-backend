@@ -1,17 +1,11 @@
 # Create your views here.
-import json
-import time
-
-
 import datetime
-
+import json
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from Qn.models import *
-
-
 from Submit.views import get_qn_data
 
 
@@ -36,7 +30,7 @@ def save_exam_answer_by_code(request):
 
         survey.recycling_num += 1
         survey.save()
-        submit = Submit(username=username, survey_id=survey,score=0)
+        submit = Submit(username=username, survey_id=survey, score=0)
         submit.save()
         all_score = 0
         for answer_dict in answer_list:
@@ -44,8 +38,8 @@ def save_exam_answer_by_code(request):
             if answer_dict['ans'] is None or answer_dict['ans'] == '':
                 continue
             question = Question.objects.get(question_id=answer_dict['question_id'])
-            answer = Answer(answer=answer_dict['answer'],username=username,
-                            type = answer_dict['type'],question_id=question,submit_id=submit,
+            answer = Answer(answer=answer_dict['answer'], username=username,
+                            type=answer_dict['type'], question_id=question, submit_id=submit,
                             )
             answer.save()
             if answer_dict['answer'] == question.right_answer:

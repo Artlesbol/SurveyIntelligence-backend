@@ -9,12 +9,11 @@ import datetime
 def make_confirm_string(user):  # generate confirm_code for user (username+c_time)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     code = hash_code(user.username, now)
-    ConfirmString.objects.create(code=code, user=user,)
+    ConfirmString.objects.create(code=code, user=user, )
     return code
 
 
 def send_email_confirm(email, code):
-
     from django.core.mail import EmailMultiAlternatives
 
     subject = '来自问卷智汇的注册确认邮件'
@@ -27,7 +26,7 @@ def send_email_confirm(email, code):
                     这里是问卷智汇，专注于管理与发布问卷！</p>
                     <p>请点击站点链接完成注册确认！</p>
                     <p>此链接有效期为{}天！</p>
-                    '''.format(settings.WEB_FRONT, code, settings.CONFIRM_DAYS)   # url must be corrected
+                    '''.format(settings.WEB_FRONT, code, settings.CONFIRM_DAYS)  # url must be corrected
 
     msg = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [email])
     msg.attach_alternative(html_content, "text/html")
@@ -35,7 +34,6 @@ def send_email_confirm(email, code):
 
 
 def send_email_change_confirm(email, code):
-
     from django.core.mail import EmailMultiAlternatives
 
     subject = '来自问卷智汇的邮箱确认邮件'
@@ -49,7 +47,7 @@ def send_email_change_confirm(email, code):
                     这里是问卷智汇，专注于管理与发布问卷！</p>
                     <p>您的邮箱验证码为 {}</p>
                     <p>验证码有效期为{}天！</p>
-                    '''.format(settings.WEB_FRONT, code, settings.CONFIRM_DAYS)   # url must be corrected
+                    '''.format(settings.WEB_FRONT, code, settings.CONFIRM_DAYS)  # url must be corrected
 
     msg = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [email])
     msg.attach_alternative(html_content, "text/html")

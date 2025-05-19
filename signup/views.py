@@ -1,25 +1,27 @@
 import json
-import time
 
 import pytz
+from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db import transaction
-from Qn.form import CreateNewQnForm, SurveyIdForm
+
 from Qn.models import *
 # Create your views here.
-from Submit.views import produce_time,finish_qn
+from Submit.views import finish_qn
 
 utc = pytz.UTC
-class SubmitRecyleNumError(Exception):
-    def __init__(self,num):
+
+
+class SubmitRecycleNumError(Exception):
+    def __init__(self, num):
         self.num = num
 
     def __str__(self):
         return "您报名的问卷回收数目为： %d, 已达到最大回收量" % self.num
 
-class OptionRecyleNumError(BaseException):
-    def __init__(self,num):
+
+class OptionRecycleNumError(BaseException):
+    def __init__(self, num):
         self.num = num
 
     def __str__(self):
@@ -40,7 +42,7 @@ def save_signup_answer_by_code(request):
         username = request.session.get('username')
         if username is None:
             username = ''
-        print("username"+username)
+        print("username" + username)
         survey = Survey.objects.get(share_url=code)
         qn_id = survey.survey_id
         if survey.is_deleted:
@@ -50,7 +52,7 @@ def save_signup_answer_by_code(request):
             # if time.mktime(survey.finished_time.timetuple()) < time.time():
             #     return JsonResponse({'status_code': -1, 'message': '超过截止时间'})
 
-        if Submit.objects.filter(survey_id=survey, username=username) and username != '':#TODO delete
+        if Submit.objects.filter(survey_id=survey, username=username) and username != '':  # TODO delete
             return JsonResponse({'status_code': 21, 'message': '已提交过问卷'})
 
         if not survey.is_released:
@@ -63,15 +65,15 @@ def save_signup_answer_by_code(request):
             with transaction.atomic():
                 survey_lock = Survey.objects.select_for_update().get(survey_id=survey.survey_id)
                 if survey_lock.recycling_num + 1 > survey_lock.max_recycling:
-                    raise SubmitRecyleNumError(survey.recycling_num)
+                    raise SubmitRecycleNumError(survey.recycling_num)
                 survey_lock.recycling_num = survey_lock.recycling_num + 1
 
                 survey_lock.save()
                 # print("lock_回收数目"+survey_lock.recycling_num)
             # transaction.commit()
 
-        except SubmitRecyleNumError as e:
-            print('问卷报名已满,错误信息为',e)
+        except SubmitRecycleNumError as e:
+            print('问卷报名已满,错误信息为', e)
             finish_qn(qn_id)
 
             return JsonResponse({'status_code': 11, 'message': '问卷报名已满'})
@@ -107,11 +109,11 @@ def save_signup_answer_by_code(request):
                             with transaction.atomic():
                                 option_lock = Option.objects.select_for_update().get(option_id=option.option_id)
                                 if option_lock.remain_num <= 0:
-                                    raise OptionRecyleNumError(option_lock.num_limit)
+                                    raise OptionRecycleNumError(option_lock.num_limit)
 
-                            option_lock.remain_num -=  1
+                            option_lock.remain_num -= 1
                             option_lock.save()
-                        except OptionRecyleNumError as e:
+                        except OptionRecycleNumError as e:
                             print('问卷存在报名项目报名已满,错误信息为', e)
                             # print("before recycling_num")
 
@@ -130,7 +132,8 @@ def save_signup_answer_by_code(request):
                                         # print(answer.answer)
                                         # print(option_roolback.content+"roolback")
                                         option_roolback.save()
-                                    elif answer.answer.find(option_roolback.content) >= 0 and option_roolback.has_num_limit and option_roolback.option_id == option.option_id:
+                                    elif answer.answer.find(
+                                            option_roolback.content) >= 0 and option_roolback.has_num_limit and option_roolback.option_id == option.option_id:
                                         # print(option_roolback.content+"not roolback")
                                         is_stop = True
                                         break
@@ -146,4 +149,3 @@ def save_signup_answer_by_code(request):
     else:
         response = {'status_code': -2, 'message': '请求错误'}
         return JsonResponse(response)
-
