@@ -676,6 +676,35 @@ def create_docx(request):
         return JsonResponse(response)
 
 
+@csrf_exempt
+def create_md(request):
+    response = {'status_code': 1, 'message': 'success'}
+    if request.method == 'POST':
+        survey_form = SurveyIdForm(request.POST)
+        if survey_form.is_valid():
+            id = survey_form.cleaned_data.get('qn_id')
+            try:
+                survey = Survey.objects.get(survey_id=id)
+            except:
+                response = {'status_code': 2, 'message': '问卷不存在'}
+                return JsonResponse(response)
+
+            md_title, md_path = qn_to_md(survey.survey_id)
+            with open(md_path, 'rb') as f:
+                md_content = f.read()
+                b64_data = base64.b64encode(md_content).decode()
+            response['filename'] = md_title
+            response['md_url'] = djangoProject.settings.WEB_ROOT + "/media/Document/" + md_title
+            response['b64data'] = b64_data
+
+            return JsonResponse(response)
+        else:
+            response = {'status_code': -1, 'message': 'invalid form'}
+            return JsonResponse(response)
+    else:
+        response = {'status_code': -2, 'message': '请求错误'}
+        return JsonResponse(response)
+
 
 import hashlib
 
