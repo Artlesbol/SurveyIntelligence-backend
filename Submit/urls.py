@@ -1,8 +1,8 @@
-from django.conf.urls.static import static
 from django.urls import path
-from .views import *
+
 from exam.views import save_exam_answer_by_code
 from vote.views import *
+from .views import *
 
 # from .schedules import timing_task
 urlpatterns = [
@@ -73,4 +73,5 @@ urlpatterns = [
     # 获取IP地址定位
     # path('get/exam/rank', get_exam_rank),
 
+    path('ai_gen_qn', ai_generate_qn)
 ]

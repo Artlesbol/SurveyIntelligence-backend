@@ -1603,3 +1603,163 @@ def maintain_is_logic(qn_id):
     qn.is_logic = is_logic
     qn.save()
     return is_logic
+
+
+@csrf_exempt
+def ai_generate_qn(request):
+    response = {'status_code': 1, 'message': 'success'}
+    if request.method == 'POST':
+        prompt = request.POST.get('prompt')
+        qn_id = request.POST.get('qn_id')
+
+        if not prompt or not qn_id:
+            response = {'status_code': -1, 'message': '参数不完整'}
+            return JsonResponse(response)
+
+        try:
+            survey = Survey.objects.get(survey_id=qn_id)
+        except:
+            response = {'status_code': 2, 'message': '问卷不存在'}
+            return JsonResponse(response)
+
+        print(f'发送API请求 at {time.time()}')
+
+        try:
+            system_prompt = """你是一个专业的问卷设计助手。请根据用户的描述，生成一份包含多个问题的调查问卷。
+            问卷可以包含以下类型的问题：
+            1. 单选题（radio）：用户只能选择一个选项
+            2. 多选题（checkbox）：用户可以选择多个选项
+            3. 填空题（text）：用户可以输入文本
+            4. 评分题（mark）：用户可以给出评分
+            
+            请按照以下JSON格式返回问卷内容：
+            [
+                // 问卷基本信息
+                {
+                    "questionnaire_title": 问卷标题,
+                    "questionnaire_description": 问卷描述,
+                },
+                // 问题列表
+                {
+                    "id": 问题序号(从1开始),
+                    "type": "问题类型(radio/checkbox/text/mark)",
+                    "title": "问题标题",
+                    "must": true/false(是否必答),
+                    "description": "问题描述(可选)",
+                    "row": 1(填空题的行数),
+                    "score": 评分题的最大分值(3-10),
+                    "options": [
+                        {"id": 1, "title": "选项1"},
+                        {"id": 2, "title": "选项2"},
+                        // 更多选项...
+                    ]
+                },
+                // 更多问题...
+            ]
+            
+            注意：
+            - 单选题和多选题必须包含options字段，至少2个选项
+            - 填空题的options应为[{"id": 1, "title": ""}]
+            - 评分题的options应为[{"id": 1, "title": ""}]，score字段为最大分值(3-10)
+            - 返回的JSON必须是一个数组，不要包含其他文本
+            """
+
+            # 准备API请求
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {Secrets.AI.AI_API_KEY}"
+            }
+
+            data = {
+                "model": Secrets.AI.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 4000
+            }
+
+            # 发送API请求
+            api_response = requests.post(
+                Secrets.AI.AI_API_URL,
+                headers=headers,
+                json=data
+            )
+
+            # 解析API响应
+            if api_response.status_code == 200:
+                result = api_response.json()
+                ai_content = result['choices'][0]['message']['content']
+
+                # 提取JSON部分
+                import re
+                json_match = re.search(r'\[\s*\{.*}\s*]', ai_content, re.DOTALL)
+                if json_match:
+                    ai_content = json_match.group(0)
+
+                resp = json.loads(ai_content)
+                print(resp)
+                info = resp[0]
+                questions = resp[1:]
+
+                if 'questionnaire_title' in info:
+                    survey.title = info['questionnaire_title']
+                if 'questionnaire_description' in info:
+                    survey.description = info['questionnaire_description']
+
+                # 验证和清理问题数据
+                cnt = 0
+                for question in questions:
+                    if 'title' not in question:
+                        continue
+                    if 'description' not in question:
+                        question['description'] = ''
+                    if 'must' not in question:
+                        question['must'] = True
+                    if 'type' not in question:
+                        continue
+                    if 'row' not in question:
+                        question['row'] = 1
+                    if 'score' not in question:
+                        question['score'] = 10
+                    if 'options' not in question:
+                        question['options'] = []
+
+                    cnt += 1
+                    if 'id' not in question:
+                        question['id'] = cnt
+
+                    create_question_in_save(question['title'], question['description'],
+                                            question['must'], question['type'],
+                                            qn_id=qn_id,
+                                            raw=question['row'],
+                                            score=question['score'],
+                                            options=question['options'],
+                                            sequence=question['id'], refer='', point=0,
+                                            isVote=False,
+                                            last_question=0, last_option=0,
+                                            image_url='',
+                                            video_url=''
+                                            )
+
+                survey.save()
+                question_list = Question.objects.filter(survey_id=survey)
+                question_num = len(question_list)
+                survey.question_num = question_num
+                print("保存成功，该问卷的问题数目为：" + str(question_num))
+                survey.save()
+                print(f'成功生成问卷 at {time.time()}')
+
+                response['questions'] = questions
+                print(questions)
+                return JsonResponse(response)
+            else:
+                raise Exception(f"API请求失败: {api_response.status_code} {api_response.text}")
+        except Exception as e:
+            print(e)
+            response = {'status_code': -3, 'message': f'生成失败: {str(e)}'}
+            return JsonResponse(response)
+    else:
+        response = {'status_code': -2, 'message': 'invalid http method'}
+        return JsonResponse(response)
