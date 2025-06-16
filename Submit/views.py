@@ -1306,16 +1306,12 @@ def get_qn_all_submit(request):
         if survey_form.is_valid():
             id = survey_form.cleaned_data.get('qn_id')
             try:
-                qn = Survey.objects.get(survey_id=id)
+                Survey.objects.get(survey_id=id)
             except:
                 response = {'status_code': 2, 'message': '问卷不存在'}
                 return JsonResponse(response)
-            # username = qn.username
-            # if request.session['username'] != username:
-            #     response = {'status_code': 0, 'message': '没有访问权限'}
-            #     return JsonResponse(response)
             response = get_all_submit_data(id, response, 'normal')
-
+            print(response)
             return JsonResponse(response)
         else:
             response = {'status_code': -1, 'message': 'invalid form'}
@@ -1418,6 +1414,8 @@ def cross_analysis(request):
             # response['num_list'] = num_list
             response['question1'] = question1
             response['question2'] = question2
+            print('---')
+            print(response)
             return JsonResponse(response)
 
         else:
