@@ -1620,7 +1620,7 @@ def ai_generate_qn(request):
             response = {'status_code': 2, 'message': '问卷不存在'}
             return JsonResponse(response)
 
-        print(f'发送API请求 at {time.time()}')
+        print(f'发送API请求 at {time.asctime()}')
 
         try:
             system_prompt = """你是一个专业的问卷设计助手。请根据用户的描述，生成一份包含多个问题的调查问卷。
@@ -1689,6 +1689,8 @@ def ai_generate_qn(request):
             if api_response.status_code == 200:
                 result = api_response.json()
                 ai_content = result['choices'][0]['message']['content']
+                print('ai_content:')
+                print(ai_content)
 
                 # 提取JSON部分
                 import re
@@ -1703,29 +1705,33 @@ def ai_generate_qn(request):
 
                 if 'questionnaire_title' in info:
                     survey.title = info['questionnaire_title']
+                    response['title'] = info['questionnaire_title']
                 if 'questionnaire_description' in info:
                     survey.description = info['questionnaire_description']
+                    response['description'] = info['questionnaire_description']
+                    
+                Question.objects.filter(survey_id=survey).delete()
 
                 # 验证和清理问题数据
                 cnt = 0
                 for question in questions:
-                    if 'title' not in question:
+                    if 'title' not in question or question['title'] is None:
                         continue
-                    if 'description' not in question:
+                    if 'description' not in question or question['description'] is None:
                         question['description'] = ''
-                    if 'must' not in question:
+                    if 'must' not in question or question['must'] is None:
                         question['must'] = True
-                    if 'type' not in question:
+                    if 'type' not in question or question['type'] is None:
                         continue
-                    if 'row' not in question:
+                    if 'row' not in question or question['row'] is None:
                         question['row'] = 1
-                    if 'score' not in question:
+                    if 'score' not in question or question['score'] is None:
                         question['score'] = 10
-                    if 'options' not in question:
+                    if 'options' not in question or question['options'] is None:
                         question['options'] = []
 
                     cnt += 1
-                    if 'id' not in question:
+                    if 'id' not in question or question['id'] is None:
                         question['id'] = cnt
 
                     create_question_in_save(question['title'], question['description'],
@@ -1747,7 +1753,7 @@ def ai_generate_qn(request):
                 survey.question_num = question_num
                 print("保存成功，该问卷的问题数目为：" + str(question_num))
                 survey.save()
-                print(f'成功生成问卷 at {time.time()}')
+                print(f'成功生成问卷 at {time.asctime()}')
 
                 response['questions'] = questions
                 print(questions)
