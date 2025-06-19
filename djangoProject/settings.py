@@ -175,6 +175,8 @@ EMAIL_HOST = Secrets.Email.emailHost
 EMAIL_PORT = Secrets.Email.emailPort
 EMAIL_HOST_USER = Secrets.Email.emailAddr
 EMAIL_HOST_PASSWORD = Secrets.Email.emailPasswd  # 邮箱 SMTP 授权码
+EMAIL_FROM = 'Questionaire-Email'
+EMAIL_USE_SSL = Secrets.Email.useSSL  # 启用SSL（从secrets.py读取）
 
 CONFIRM_DAYS = 3  # confirm valid days
 
